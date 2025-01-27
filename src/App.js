@@ -14,7 +14,7 @@ import {
 
 import * as THREE from "three";
 
-import DicomImage from "./DicomImage";
+import TexturePlane from "./DicomImage";
 
 function App() {
   const [dicomFolder, setDicomFolder] = useState("");
@@ -167,14 +167,21 @@ function App() {
           pixelData.orientation &&
           pixelData.shape && (
             <Canvas
-              camera={{ position: [0, 0, 500], fov: 50 }}
+              orthographic // Enable orthographic camera
+              camera={{
+                position: [0, 0, 500], // Camera position
+                zoom: 1, // Initial zoom level
+                near: 0.1, // Near clipping plane
+                far: 1000, // Far clipping plane
+
+              }}
               className="canvas-container"
             >
               <OrbitControls enableZoom={true} enablePan={true} />
               <ambientLight intensity={0.5} />
               <pointLight position={[10, 10, 10]} />
               {pixelData && (
-                <DicomImage
+                <TexturePlane
                   pixelData={pixelData.pixelArray}
                   origin={pixelData.origin}
                   orientation={pixelData.orientation}

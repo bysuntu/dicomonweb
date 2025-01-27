@@ -28,6 +28,66 @@ function orientationToRotationMatrix(orientation) {
   return matrix;
 }
 
+function TexturePlane({pixelData, width, height, origin, orientation}) {
+
+
+    const texture = useMemo(() => {
+        const size = height * width;
+        if (pixelData.length !== size) {
+            return null;
+        }
+
+        const minValue = Math.min(...pixelData);
+        const maxValue = Math.max(...pixelData);
+
+        const imageData = new Uint8Array(size * 4);
+        for (let i = 0; i < size; i++) {
+            const gray = Math.min(Math.max(((pixelData[i] - minValue) / (maxValue - minValue)) * 255, 0), 255);
+            imageData[i * 4] = gray; // R
+            imageData[i * 4 + 1] = gray; // G
+            imageData[i * 4 + 2] = gray; // B
+            imageData[i * 4 + 3] = 255; // Alpha
+        }
+        // Create the texture from image data
+        const texture = new THREE.DataTexture(imageData, width, height, THREE.RGBAFormat);
+        texture.needsUpdate = true; // Ensure texture is updated
+        return texture;
+    }, [pixelData, width, height]);
+
+  // Calculate plane orientation from rowDir and colDir
+    const calculatePlaneRotation = (orientation) => {
+        const [rowX, rowY, rowZ, colX, colY, colZ] = orientation;
+
+        const rowDir = [rowX, rowY, rowZ];
+        const colDir = [colX, colY, colZ];
+
+        // Normalize the row and column vectors 
+        const row = new THREE.Vector3(...rowDir).normalize();
+        const col = new THREE.Vector3(...colDir).normalize();
+
+        const normal = new THREE.Vector3()
+        .crossVectors(new THREE.Vector3(...row), new THREE.Vector3(...col))
+        .normalize();
+
+        const quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal); // Rotate Z-axis to match the plane's normal
+        return new THREE.Euler().setFromQuaternion(quaternion);
+    };
+
+    const rotation = useMemo(() => {
+        return calculatePlaneRotation(orientation);
+    }, [orientation]);
+
+    return (
+        <mesh position={origin} rotation={rotation}>
+          {/* Plane geometry with a size of rows x columns */}
+          <planeGeometry args={[width, height]} />
+          <meshBasicMaterial map={texture} side={THREE.DoubleSide} />
+        </mesh>
+      );
+
+}
+
 function DicomImage({ pixelData, width, height, origin, orientation }) {
     const { gl } = useThree();
   
@@ -87,4 +147,4 @@ function DicomImage({ pixelData, width, height, origin, orientation }) {
     );
   }
   
-export default DicomImage;
+export default TexturePlane;
